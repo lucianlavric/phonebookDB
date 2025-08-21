@@ -13,28 +13,7 @@ app.use(express.static('dist'))
 morgan.token('type', function(req, res) { return JSON.stringify(req.body) })
 
 
-let persons = [
-	{
-		"id": "1",
-		"name": "Arto Hellas",
-		"number": "040-123456"
-	},
-	{
-		"id": "2",
-		"name": "Ada Lovelace",
-		"number": "39-44-5323523"
-	},
-	{
-		"id": "3",
-		"name": "Dan Abramov",
-		"number": "12-43-234345"
-	},
-	{
-		"id": "4",
-		"name": "Mary Poppendieck",
-		"number": "39-23-6423122"
-	}
-]
+let persons = []
 
 app.get('/', (req, res) => {
 	res.send('GET request to the homepage')
@@ -47,12 +26,20 @@ app.get('/api/persons', (req, res) => {
 })
 
 app.get('/info', (req, res) => {
-	const personLength = persons.length
-	const date = new Date()
-	res.send(`
-<p>phonebook has info for ${personLength} people</p>
+	let size
+	Person.countDocuments({})
+		.then(count => {
+			size = count
+			console.log('Total people:', count);
+			res.send(`
+<p>phonebook has info for ${size} people</p>
 <p>${date}</p>
 `)
+
+		})
+		.catch(error => {
+			console.error('Error:', error);
+		}); const date = new Date()
 })
 
 app.get('/api/persons/:id', (request, response, next) => {
@@ -69,12 +56,6 @@ app.get('/api/persons/:id', (request, response, next) => {
 		)
 })
 
-app.delete('/api/persons/:id', (request, response) => {
-	const id = request.params.id
-	persons = persons.filter(person => person.id !== id)
-
-	response.status(204).end()
-})
 
 const generateId = () => {
 	const maxId = persons.length > 0
@@ -118,7 +99,8 @@ app.post('/api/persons', (request, response) => {
 	})
 })
 
-app.delete('api/persons/:id', (request, response, next) => {
+app.delete('/api/persons/:id', (request, response, next) => {
+	console.log("request params.id is", request.params.id)
 	Person.findByIdAndDelete(request.params.id)
 		.then(result => {
 			response.status(204).end()
@@ -129,14 +111,14 @@ app.delete('api/persons/:id', (request, response, next) => {
 app.put('/api/persons/:id', (request, response, next) => {
 	const { name, number } = request.body
 
-	Note.findById(request.params.id)
+	Person.findById(request.params.id)
 		.then(person => {
 			if (!person) {
 				return response.status(404).end()
 			}
 
-			note.name = name
-			note.number = number
+			person.name = name
+			person.number = number
 
 			return person.save().then((updatedPerson) => {
 				response.json(updatedPerson)
